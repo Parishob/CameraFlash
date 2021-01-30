@@ -190,6 +190,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SetValues {
                 width = jpegSizes[0].width
                 height = jpegSizes[0].height
             }
+
             val reader = ImageReader.newInstance(width, height, ImageFormat.JPEG, 1)
             val outputSurfaces: MutableList<Surface> = ArrayList(2)
             outputSurfaces.add(reader.surface)
@@ -276,6 +277,9 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SetValues {
             texture.setDefaultBufferSize(imageDimension!!.width, imageDimension!!.height)
             val surface = Surface(texture)
             captureRequestBuilder = cameraDevice!!.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
+            captureRequestBuilder!!.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_OFF);
+            captureRequestBuilder!!.set(CaptureRequest.SENSOR_EXPOSURE_TIME, previousModelShutter.value.toLong());
+            captureRequestBuilder!!.set(CaptureRequest.SENSOR_SENSITIVITY, previousModelISO.value.toInt());
             captureRequestBuilder!!.addTarget(surface)
             cameraDevice!!.createCaptureSession(Arrays.asList(surface), object : CameraCaptureSession.StateCallback() {
                 override fun onConfigured(cameraCaptureSession: CameraCaptureSession) {
