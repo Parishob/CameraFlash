@@ -14,22 +14,35 @@ import android.os.Environment
 import android.os.Handler
 import android.os.HandlerThread
 import android.util.Log
+import android.util.Range
 import android.util.Size
 import android.util.SparseIntArray
 import android.view.Surface
-import android.view.TextureView
 import android.view.TextureView.SurfaceTextureListener
 import android.view.View
-import android.widget.Button
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.recyclerview.widget.LinearLayoutManager
+import kotlinx.android.synthetic.main.activity_main.*
 import java.io.*
 import java.util.*
+import kotlin.collections.ArrayList
 
-class MainActivity : AppCompatActivity() {
-    private var takePictureButton: Button? = null
-    private var textureView: TextureView? = null
+class MainActivity : AppCompatActivity(), View.OnClickListener, SetValues {
+    var previousPosISO = -1
+    lateinit var previousModelISO:ModelClass
+
+
+    var previousPosShutter = -1
+    lateinit var previousModelShutter:ModelClass
+
+    var range: Range<Int>? = null
+
+    var listISO = ArrayList<ModelClass>()
+    var shutterList = ArrayList<ModelClass>()
+    lateinit var adapter: AdapterClass
+
 
     companion object {
         private const val TAG = "MainActivity"
@@ -44,7 +57,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-     var cameraId: String=""
+    var cameraId: String = ""
     protected var cameraDevice: CameraDevice? = null
     protected var cameraCaptureSessions: CameraCaptureSession? = null
     protected var captureRequest: CaptureRequest? = null
@@ -58,12 +71,42 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        textureView = findViewById<View>(R.id.texture) as TextureView
-        assert(textureView != null)
-        textureView!!.surfaceTextureListener = textureListener
-        takePictureButton = findViewById<View>(R.id.btn_takepicture) as Button
-        assert(takePictureButton != null)
-        takePictureButton!!.setOnClickListener { takePicture() }
+
+        initViews()
+        addShutterList()
+
+//        textureView = findViewById<View>(R.id.texture) as TextureView
+//        assert(textureView != null)
+//        textureView!!.surfaceTextureListener = textureListener
+//        takePictureButton = findViewById<View>(R.id.btn_takepicture) as Button
+//        assert(takePictureButton != null)
+//        takePictureButton!!.setOnClickListener { takePicture() }
+    }
+
+    private fun addShutterList() {
+        shutterList.add(ModelClass("1/1000s", false))
+        shutterList.add(ModelClass("1/500s", false))
+        shutterList.add(ModelClass("1/250s", false))
+        shutterList.add(ModelClass("1/125s", false))
+        shutterList.add(ModelClass("1/60s", false))
+        shutterList.add(ModelClass("1/30s", false))
+        shutterList.add(ModelClass("1/15s", false))
+        shutterList.add(ModelClass("1/8s", false))
+        shutterList.add(ModelClass("14s", false))
+        shutterList.add(ModelClass("1/2s", false))
+        shutterList.add(ModelClass("1s", false))
+        shutterList.add(ModelClass("2s", false))
+        shutterList.add(ModelClass("4s", false))
+        shutterList.add(ModelClass("8s", false))
+        shutterList.add(ModelClass("16s", false))
+        shutterList.add(ModelClass("32s", false))
+    }
+
+    private fun initViews() {
+        rv.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        tvISO.setOnClickListener(this)
+        tvShutter.setOnClickListener(this)
+        btnPicture.setOnClickListener(this)
     }
 
     var textureListener: SurfaceTextureListener = object : SurfaceTextureListener {
@@ -132,6 +175,11 @@ class MainActivity : AppCompatActivity() {
         val manager = getSystemService(Context.CAMERA_SERVICE) as CameraManager
         try {
             val characteristics = manager.getCameraCharacteristics(cameraDevice!!.id)
+            range = characteristics.get(CameraCharacteristics.SENSOR_INFO_SENSITIVITY_RANGE) ?: null
+            if (range != null)
+                getISORange(range)
+
+
             var jpegSizes: Array<Size>? = null
             if (characteristics != null) {
                 jpegSizes = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)!!.getOutputSizes(ImageFormat.JPEG)
@@ -206,6 +254,22 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun getISORange(range: Range<Int>?) {
+        var minRange = range!!.lower
+        val maxRange = range!!.upper
+        listISO.add(ModelClass(minRange.toString(), false))
+        minRange += 200
+        while (minRange <= maxRange) {
+            listISO.add(ModelClass(minRange.toString(), false))
+            minRange += 200
+
+        }
+        listISO.add(ModelClass(maxRange.toString(), false))
+
+
+    }
+
+
     protected fun createCameraPreview() {
         try {
             val texture = textureView!!.surfaceTexture!!
@@ -239,6 +303,10 @@ class MainActivity : AppCompatActivity() {
         try {
             cameraId = manager.cameraIdList[0]
             val characteristics = manager.getCameraCharacteristics(cameraId)
+            range = characteristics.get(CameraCharacteristics.SENSOR_INFO_SENSITIVITY_RANGE) ?: null
+            if (range != null)
+                getISORange(range)
+
             val map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)!!
             imageDimension = map.getOutputSizes(SurfaceTexture::class.java)[0]
             // Add permission for camera and let user grant the permission
@@ -303,4 +371,80 @@ class MainActivity : AppCompatActivity() {
         stopBackgroundThread()
         super.onPause()
     }
+
+    override fun onClick(v: View) {
+        when (v.id) {
+            R.id.tvISO -> {
+                adapter = AdapterClass(0, this, listISO, this)
+                rv.adapter = adapter
+
+            }
+            R.id.tvShutter -> {
+                adapter = AdapterClass(1, this, shutterList, this)
+                rv.adapter = adapter
+            }
+            R.id.btnPicture -> {
+                takePicture()
+            }
+        }
+    }
+
+    override fun returnValue(type: Int, value: String, model: ModelClass, pos: Int) {
+        if (type == 0) {
+            if (previousPosISO != -1) {
+                previousModelISO.isSelected = false
+                listISO.set(previousPosISO, previousModelISO)
+
+
+                previousModelISO = model
+                previousPosISO=pos
+
+
+            }
+            else
+            {
+
+                previousModelISO=model
+                previousPosISO=pos
+            }
+
+
+
+
+            model.isSelected = true
+            listISO.set(pos, model)
+        } else
+        {
+
+            if (previousPosShutter != -1) {
+                previousModelShutter.isSelected = false
+                shutterList.set(previousPosShutter, previousModelShutter)
+
+
+                previousModelShutter = model
+                previousPosShutter=pos
+
+
+            }
+            else
+            {
+                previousModelShutter=model
+                previousPosShutter=pos
+            }
+
+
+            model.isSelected = true
+            shutterList.set(pos, model)
+        }
+        rv.post(Runnable { adapter.notifyDataSetChanged() })
+
+
+    }
+
+
+}
+
+interface SetValues {
+
+    fun returnValue(type: Int, value: String, model: ModelClass, pos: Int)
 }

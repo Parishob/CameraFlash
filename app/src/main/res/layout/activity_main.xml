@@ -1,27 +1,66 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
     tools:context=".MainActivity">
 
-    <Button
-        android:id="@+id/camera_capture_button"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
-        android:layout_marginBottom="50dp"
-        android:scaleType="fitCenter"
-        android:text="Take Photo"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        android:elevation="2dp" />
-
-    <androidx.camera.view.PreviewView
-        android:id="@+id/viewFinder"
+    <TextureView
+        android:id="@+id/textureView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/btnPicture"
+        android:layout_alignParentTop="true" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    <Button
+        android:id="@+id/btnPicture"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"
+        android:text="@string/take_picture" />
+
+    <ImageView
+        android:id="@+id/ivAddISO"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/tvISO"
+        android:layout_centerHorizontal="true"
+        android:src="@android:drawable/btn_star_big_off" />
+
+    <TextView
+        android:id="@+id/tvISO"
+
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/btnPicture"
+        android:layout_alignParentLeft="true"
+
+        android:layout_marginLeft="30dp"
+        android:text="ISO"
+        android:textColor="@color/white"
+        android:textSize="20sp" />
+
+    <TextView
+        android:id="@+id/tvShutter"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/btnPicture"
+        android:layout_alignParentRight="true"
+        android:layout_marginRight="30dp"
+        android:textStyle="bold"
+        android:text="Shutter"
+        android:textColor="@color/white"
+        android:textSize="20sp" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@id/ivAddISO"
+        tools:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        tools:orientation="horizontal" />
+</RelativeLayout>
