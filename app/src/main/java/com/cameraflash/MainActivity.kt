@@ -7,12 +7,10 @@ import android.graphics.ImageFormat
 import android.graphics.SurfaceTexture
 import android.hardware.camera2.*
 import android.hardware.camera2.CameraCaptureSession.CaptureCallback
+import android.hardware.camera2.CameraMetadata.FLASH_MODE_OFF
 import android.media.Image
 import android.media.ImageReader
-import android.os.Bundle
-import android.os.Environment
-import android.os.Handler
-import android.os.HandlerThread
+import android.os.*
 import android.util.Log
 import android.util.Range
 import android.util.Size
@@ -92,7 +90,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SetValues {
         shutterList.add(ModelClass("1/30s", false))
         shutterList.add(ModelClass("1/15s", false))
         shutterList.add(ModelClass("1/8s", false))
-        shutterList.add(ModelClass("14s", false))
+        shutterList.add(ModelClass("1/4s", false))
         shutterList.add(ModelClass("1/2s", false))
         shutterList.add(ModelClass("1s", false))
         shutterList.add(ModelClass("2s", false))
@@ -201,11 +199,24 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SetValues {
             val captureBuilder = cameraDevice!!.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE)
             captureBuilder.addTarget(reader.surface)
             captureBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO)
+            captureBuilder.set(CaptureRequest.FLASH_MODE, FLASH_MODE_OFF);
             // Orientation
             val rotation = windowManager.defaultDisplay.rotation
             captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, ORIENTATIONS[rotation])
+
+            val captureBuilderTwo = cameraDevice!!.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE)
+            captureBuilderTwo.addTarget(reader.surface)
+            captureBuilderTwo.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO)
+            captureBuilderTwo.set(CaptureRequest.FLASH_MODE, FLASH_MODE_OFF);
+            captureBuilderTwo.set(CaptureRequest.JPEG_ORIENTATION, ORIENTATIONS[rotation])
+
             val time = System.currentTimeMillis()
-            val file = File(Environment.getExternalStorageDirectory().toString() + "" + time + "/pic.jpg")
+            val file = File(Environment.getExternalStorageDirectory().toString() + "/"+time+"pic.jpg")
+
+            val time1 = System.currentTimeMillis()
+            Log.e(TAG,time1.toString())
+
+
             val readerListener: ImageReader.OnImageAvailableListener = object : ImageReader.OnImageAvailableListener {
                 override fun onImageAvailable(reader: ImageReader) {
                     var image: Image? = null
@@ -241,12 +252,29 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SetValues {
                     super.onCaptureCompleted(session, request, result)
                     Toast.makeText(this@MainActivity, "Saved:$file", Toast.LENGTH_SHORT).show()
                     createCameraPreview()
+                    Log.e(TAG,"onCaptureCompleted-> "+System.currentTimeMillis());
                 }
+
+                override fun onCaptureProgressed(session: CameraCaptureSession, request: CaptureRequest, partialResult: CaptureResult) {
+                    super.onCaptureProgressed(session, request, partialResult)
+                    Log.e(TAG,"onCaptureProgressed-> "+System.currentTimeMillis());
+                }
+
+                override fun onCaptureStarted(session: CameraCaptureSession, request: CaptureRequest, timestamp: Long, frameNumber: Long) {
+                    super.onCaptureStarted(session, request, timestamp, frameNumber)
+                    Log.e(TAG,"onCaptureStarted-> "+System.currentTimeMillis());
+
+                }
+
+
             }
             cameraDevice!!.createCaptureSession(outputSurfaces, object : CameraCaptureSession.StateCallback() {
                 override fun onConfigured(session: CameraCaptureSession) {
                     try {
                         session.capture(captureBuilder.build(), captureListener, mBackgroundHandler)
+//                        Handler().postDelayed(Runnable {
+//                            startTcaptureTwo(session,captureBuilderTwo);
+//                        },3)
                     } catch (e: CameraAccessException) {
                         e.printStackTrace()
                     }
@@ -258,6 +286,36 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SetValues {
             e.printStackTrace()
         }
     }
+
+
+    fun startTcaptureTwo(session: CameraCaptureSession, builder: CaptureRequest.Builder) {
+
+        val captureListenerTwo: CaptureCallback = object : CaptureCallback() {
+            override fun onCaptureCompleted(session: CameraCaptureSession, request: CaptureRequest, result: TotalCaptureResult) {
+                super.onCaptureCompleted(session, request, result)
+                Log.e(TAG,"onCaptureCompletedTwo-> "+System.currentTimeMillis());
+                Toast.makeText(this@MainActivity, "Saved:$file", Toast.LENGTH_SHORT).show()
+                createCameraPreview()
+
+            }
+
+            override fun onCaptureStarted(session: CameraCaptureSession, request: CaptureRequest, timestamp: Long, frameNumber: Long) {
+                super.onCaptureStarted(session, request, timestamp, frameNumber)
+                Log.e(TAG,"onCaptureStartedTwo-> "+System.currentTimeMillis())
+            }
+
+        }
+
+        try {
+            Log.e(TAG,"onConfigured-> "+System.currentTimeMillis())
+            session.capture(builder.build(), captureListenerTwo, mBackgroundHandler)
+
+        } catch (e: CameraAccessException) {
+            e.printStackTrace()
+        }
+
+    }
+
 
     private fun getISORange(range: Range<Int>?) {
         var minRange = range!!.lower
@@ -282,9 +340,31 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SetValues {
             val surface = Surface(texture)
             captureRequestBuilder = cameraDevice!!.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
             captureRequestBuilder!!.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_OFF);
-            captureRequestBuilder!!.set(CaptureRequest.SENSOR_EXPOSURE_TIME, previousModelShutter.value.toLong());
+            captureRequestBuilder!!.set(CaptureRequest.SENSOR_EXPOSURE_TIME,10000000) //previousModelShutter.value.toLong());
             captureRequestBuilder!!.set(CaptureRequest.SENSOR_SENSITIVITY, previousModelISO.value.toInt());
+            captureRequestBuilder!!.set(CaptureRequest.FLASH_MODE,CaptureRequest.FLASH_MODE_TORCH)
             captureRequestBuilder!!.addTarget(surface)
+            val mCameraManager = getSystemService(Context.CAMERA_SERVICE) as CameraManager
+
+//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+//                val torchCallback: CameraManager.TorchCallback = object : CameraManager.TorchCallback() {
+//                    override
+//                    fun onTorchModeUnavailable(cameraId: String?) {
+//                        super.onTorchModeUnavailable(cameraId)
+//                    }
+//                    override
+//                    fun onTorchModeChanged(cameraId: String?, enabled: Boolean) {
+//                        super.onTorchModeChanged(cameraId, enabled)
+//
+//                    }
+//                }
+//                val manager = getSystemService(Context.CAMERA_SERVICE) as CameraManager
+//                manager.registerTorchCallback(torchCallback, null) // (callback, handler)
+//
+//            } else {
+//                TODO("VERSION.SDK_INT < M")
+//            }
+//            mCameraManager.setTorchMode(cameraId, false)
             cameraDevice!!.createCaptureSession(Arrays.asList(surface), object : CameraCaptureSession.StateCallback() {
                 override fun onConfigured(cameraCaptureSession: CameraCaptureSession) {
                     //The camera is already closed
@@ -334,6 +414,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SetValues {
             Log.e(TAG, "updatePreview error, return")
         }
         captureRequestBuilder!!.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO)
+
         try {
             cameraCaptureSessions!!.setRepeatingRequest(captureRequestBuilder!!.build(), null, mBackgroundHandler)
         } catch (e: CameraAccessException) {
