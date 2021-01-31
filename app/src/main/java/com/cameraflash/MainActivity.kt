@@ -7,6 +7,7 @@ import android.graphics.ImageFormat
 import android.graphics.SurfaceTexture
 import android.hardware.camera2.*
 import android.hardware.camera2.CameraCaptureSession.CaptureCallback
+import android.hardware.camera2.CameraCharacteristics.SENSOR_INFO_EXPOSURE_TIME_RANGE
 import android.media.Image
 import android.media.ImageReader
 import android.os.Bundle
@@ -41,6 +42,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SetValues {
 
     var listISO = ArrayList<ModelClass>()
     var shutterList = ArrayList<ModelClass>()
+    var valueList = ArrayList<Long>()
+
     lateinit var adapter: AdapterClass
 
 
@@ -84,27 +87,46 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SetValues {
     }
 
     private fun addShutterList() {
-        shutterList.add(ModelClass("1/1000s", false))
+        shutterList.add(ModelClass("1/1000s" ,false))
         shutterList.add(ModelClass("1/500s", false))
-        shutterList.add(ModelClass("1/250s", false))
+        shutterList.add(ModelClass("1/250s", true))
         shutterList.add(ModelClass("1/125s", false))
         shutterList.add(ModelClass("1/60s", false))
         shutterList.add(ModelClass("1/30s", false))
         shutterList.add(ModelClass("1/15s", false))
         shutterList.add(ModelClass("1/8s", false))
-        shutterList.add(ModelClass("14s", false))
+        shutterList.add(ModelClass("1/4s", false))
         shutterList.add(ModelClass("1/2s", false))
         shutterList.add(ModelClass("1s", false))
-        shutterList.add(ModelClass("2s", false))
-        shutterList.add(ModelClass("4s", false))
-        shutterList.add(ModelClass("8s", false))
-        shutterList.add(ModelClass("16s", false))
-        shutterList.add(ModelClass("32s", false))
+        valueList.add(1*100000000/1000)
+        valueList.add(1*100000000/500)
+
+        valueList.add(1*100000000/250)
+        valueList.add(1*100000000/125)
+
+        valueList.add(1*100000000/60)
+        valueList.add(1*100000000/30)
+
+        valueList.add(1*100000000/15)
+        valueList.add(1*100000000/8)
+
+        valueList.add(1*100000000/4)
+        valueList.add(1*100000000/2)
+        valueList.add(1*100000000)
+
+//        shutterList.add(ModelClass("2s", false))
+//        shutterList.add(ModelClass("4s", false))
+//        shutterList.add(ModelClass("8s", false))
+//        shutterList.add(ModelClass("16s", false))
+//        shutterList.add(ModelClass("32s", false))
     }
 
     private fun initViews() {
         previousModelShutter = ModelClass("1/250", true)
+        previousPosShutter=2
         previousModelISO = ModelClass("500", true)
+
+
 
         rv.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
         tvISO.setOnClickListener(this)
@@ -181,6 +203,9 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SetValues {
             range = characteristics.get(CameraCharacteristics.SENSOR_INFO_SENSITIVITY_RANGE) ?: null
             if (range != null)
                 getISORange(range)
+
+            characteristics.get(CameraCharacteristics.SENSOR_INFO_EXPOSURE_TIME_RANGE) ?: null
+
 
 
             var jpegSizes: Array<Size>? = null
@@ -277,14 +302,18 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SetValues {
 
     protected fun createCameraPreview() {
         try {
+            if(previousPosISO==-1)
+            {
+                previousPosISO=5
+            }
             val texture = textureView!!.surfaceTexture!!
             texture.setDefaultBufferSize(imageDimension!!.width, imageDimension!!.height)
             val surface = Surface(texture)
             captureRequestBuilder = cameraDevice!!.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
             captureRequestBuilder!!.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_OFF);
-            captureRequestBuilder!!.set(CaptureRequest.SENSOR_EXPOSURE_TIME, previousModelShutter.value.toLong());
+           captureRequestBuilder!!.set(CaptureRequest.SENSOR_EXPOSURE_TIME,valueList.get(previousPosShutter));
             captureRequestBuilder!!.set(CaptureRequest.SENSOR_SENSITIVITY, previousModelISO.value.toInt());
-            captureRequestBuilder!!.addTarget(surface)
+         captureRequestBuilder!!.addTarget(surface)
             cameraDevice!!.createCaptureSession(Arrays.asList(surface), object : CameraCaptureSession.StateCallback() {
                 override fun onConfigured(cameraCaptureSession: CameraCaptureSession) {
                     //The camera is already closed
@@ -312,6 +341,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SetValues {
             cameraId = manager.cameraIdList[0]
             val characteristics = manager.getCameraCharacteristics(cameraId)
             range = characteristics.get(CameraCharacteristics.SENSOR_INFO_SENSITIVITY_RANGE) ?: null
+            characteristics.get(SENSOR_INFO_EXPOSURE_TIME_RANGE)
             if (range != null)
                 getISORange(range)
 
@@ -421,7 +451,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SetValues {
             listISO.set(pos, model)
         } else {
 
-            if (previousPosShutter != -1) {
+
                 previousModelShutter.isSelected = false
                 shutterList.set(previousPosShutter, previousModelShutter)
 
@@ -430,10 +460,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SetValues {
                 previousPosShutter = pos
 
 
-            } else {
-                previousModelShutter = model
-                previousPosShutter = pos
-            }
+
 
 
             model.isSelected = true
