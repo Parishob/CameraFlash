@@ -31,11 +31,11 @@ import kotlin.collections.ArrayList
 
 class MainActivity : AppCompatActivity(), View.OnClickListener, SetValues {
     var previousPosISO = -1
-    lateinit var previousModelISO:ModelClass
+    lateinit var previousModelISO: ModelClass
 
 
     var previousPosShutter = -1
-    lateinit var previousModelShutter:ModelClass
+    lateinit var previousModelShutter: ModelClass
 
     var range: Range<Int>? = null
 
@@ -103,6 +103,9 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SetValues {
     }
 
     private fun initViews() {
+        previousModelShutter = ModelClass("1/250", true)
+        previousModelISO = ModelClass("500", true)
+
         rv.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
         tvISO.setOnClickListener(this)
         tvShutter.setOnClickListener(this)
@@ -201,7 +204,8 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SetValues {
             // Orientation
             val rotation = windowManager.defaultDisplay.rotation
             captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, ORIENTATIONS[rotation])
-            val file = File(Environment.getExternalStorageDirectory().toString() + "/pic.jpg")
+            val time = System.currentTimeMillis()
+            val file = File(Environment.getExternalStorageDirectory().toString() + "" + time + "/pic.jpg")
             val readerListener: ImageReader.OnImageAvailableListener = object : ImageReader.OnImageAvailableListener {
                 override fun onImageAvailable(reader: ImageReader) {
                     var image: Image? = null
@@ -401,15 +405,13 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SetValues {
 
 
                 previousModelISO = model
-                previousPosISO=pos
+                previousPosISO = pos
 
 
-            }
-            else
-            {
+            } else {
 
-                previousModelISO=model
-                previousPosISO=pos
+                previousModelISO = model
+                previousPosISO = pos
             }
 
 
@@ -417,8 +419,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SetValues {
 
             model.isSelected = true
             listISO.set(pos, model)
-        } else
-        {
+        } else {
 
             if (previousPosShutter != -1) {
                 previousModelShutter.isSelected = false
@@ -426,14 +427,12 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, SetValues {
 
 
                 previousModelShutter = model
-                previousPosShutter=pos
+                previousPosShutter = pos
 
 
-            }
-            else
-            {
-                previousModelShutter=model
-                previousPosShutter=pos
+            } else {
+                previousModelShutter = model
+                previousPosShutter = pos
             }
 
 
