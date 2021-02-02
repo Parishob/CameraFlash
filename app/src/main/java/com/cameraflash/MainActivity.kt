@@ -33,7 +33,7 @@ import kotlin.collections.ArrayList
 class MainActivity : AppCompatActivity(), View.OnClickListener, SetValues {
     var previousPosISO = -1
     lateinit var previousModelISO: ModelClass
-
+ var y=""
 
     var previousPosShutter = -1
     lateinit var previousModelShutter: ModelClass
